@@ -1,7 +1,6 @@
 const async = require('async');
 const crypto = require('crypto');
 
-
 function repeatLastElementIfNotEven(leavesArray, callback) {
   if (!Array.isArray(leavesArray))
     return callback('array_expected');
@@ -10,13 +9,13 @@ function repeatLastElementIfNotEven(leavesArray, callback) {
     leavesArray.push(leavesArray[leavesArray.length - 1]);
 
   return callback(null, leavesArray);
-}
+};
 
 function sha256(string, key, callback) {
   const hash = crypto.createHash('sha256').update(string).digest('hex');
 
   return callback(null, hash);
-}
+};
 
 function recursiveGenerateMerkleTree(hashArray, originalLeavesArray, callback) {
   if (!Array.isArray(hashArray))
@@ -68,7 +67,7 @@ function recursiveGenerateMerkleTree(hashArray, originalLeavesArray, callback) {
       }
     );
   });
-}
+};
 
 function createMerkleTree(leavesArray, callback) {
   if (!Array.isArray(leavesArray))
@@ -80,14 +79,14 @@ function createMerkleTree(leavesArray, callback) {
     leavesArray,
     (leaf, index, eachCallback) => {
       sha256(leaf.toString(), index, (err, hash) => {
-        if(err)
+        if (err)
           return eachCallback(err);
 
         hashedLeavesArray[index] = hash;
         eachCallback();
       });
     },
-    (err) => {
+    err => {
       if (err)
         return callback(err);
 
@@ -99,14 +98,14 @@ function createMerkleTree(leavesArray, callback) {
       });
     }
   );
-}
+};
 
 function getMerkleRoot(merkleTree, callback) {
   if (!Array.isArray(merkleTree))
     return callback('unexpected_merkle_tree_format');
 
   return callback(null, merkleTree.root);
-}
+};
 
 function addLeaf(newLeafArray, leavesArray, callback) {
   if (!Array.isArray(leavesArray))
@@ -118,35 +117,32 @@ function addLeaf(newLeafArray, leavesArray, callback) {
   const combinedLeavesArray = leavesArray.concat(newLeafArray);
 
   createMerkleTree(combinedLeavesArray, (err, merkleTree) => {
-    if(err)
+    if (err)
       return callback(err)
 
     return callback(null, merkleTree);
   });
-}
+};
 
 function removeLeaf(leafToRemove, merkleTree, callback){
-  if(!leafToRemove)
+  if (!leafToRemove)
     return callback('bad_request');
 
-  let targetLeafIndex = merkleTree.leavesArray.findIndex((leafIndex) => leafIndex === leafToRemove);
+  const prunedLeaves = merkleTree.leavesArray.filter(item => item !== leafToRemove);
 
-  if(targetLeafIndex < 0)
-    return callback('bad_request');
-
-  let prunedLeaves = merkleTree.leavesArray.filter((element) => element !== targetLeafIndex);
+  if (!prunedLeaves)
+    return callback('bad_request'); // TODO: açık hata mesajı
 
   createMerkleTree(prunedLeaves, (err, prunedLeavesMerkleTree) => {
-    if(err)
-      callback(err);
+    if (err)
+      return callback(err);
 
-    callback(null, prunedLeavesMerkleTree);
+    return callback(null, prunedLeavesMerkleTree);
   })
-
-}
+};
 
 function recursiveGenerateUpperTreeWitnesses( data, callback) {
-  if(data.cummulativeNodeCount >= data.merkleTree.tree.length - 1) //düzelt burayı
+  if (data.cummulativeNodeCount >= data.merkleTree.tree.length - 1) //düzelt burayı
     return callback(null, []);
 
   if (data.currentIndex >= data.merkleTree.tree.length) {
@@ -156,7 +152,7 @@ function recursiveGenerateUpperTreeWitnesses( data, callback) {
 
   data.currentIndex = data.cummulativeNodeCount + Math.floor(((data.currentIndex ) % (data.eachLevelNodeCount - 1) / 2));
 
-  if(data.currentIndex % 2 === 0)
+  if (data.currentIndex % 2 === 0)
     data.witnessIndex = data.currentIndex + 1;
   else
     data.witnessIndex = data.currentIndex - 1;
@@ -169,18 +165,18 @@ function recursiveGenerateUpperTreeWitnesses( data, callback) {
 
   data.eachLevelNodeCount = Math.floor(data.eachLevelNodeCount / 2);
 
-  if(data.eachLevelNodeCount % 2 != 0)
+  if (data.eachLevelNodeCount % 2 != 0)
     data.eachLevelNodeCount++;
 
   data.cummulativeNodeCount += data.eachLevelNodeCount;
 
   recursiveGenerateUpperTreeWitnesses(data, (err, upperTreeWitnessArray) => {
-    if(err)
+    if (err)
       return callback(err);
 
     callback(null, data.witnessArray);
   })
-}
+};
 
 function generateMerkleProof(targetLeaf, merkleTree, callback) {
   if (!targetLeaf)
@@ -201,7 +197,7 @@ function generateMerkleProof(targetLeaf, merkleTree, callback) {
   });
 
   let firstLevelNodeCount = merkleTree.leavesArray.length
-  if(firstLevelNodeCount % 2 != 0)
+  if (firstLevelNodeCount % 2 != 0)
     firstLevelNodeCount++;
 
   const witnessGenerationParameters = {
@@ -212,92 +208,92 @@ function generateMerkleProof(targetLeaf, merkleTree, callback) {
     witnessArray: witnessArray,
     merkleTree: merkleTree
   }
-  console.log(witnessGenerationParameters);
+  // console.log(witnessGenerationParameters);
 
   recursiveGenerateUpperTreeWitnesses(witnessGenerationParameters, (err, upperTreeWitnessArray) => {
-    if(err)
+    if (err)
       return callback(err);
 
     return callback(null, upperTreeWitnessArray);
   });
-}
+};
 
 function recursivelyVerifyMerkleProof(data, merklePath, operationCount, merkleRoot, callback) {
   console.log(merklePath);
 
-  if(data == merkleRoot)
+  if (data == merkleRoot)
     return callback(null, true);
 
-  if(operationCount == merklePath.length)
+  if (operationCount == merklePath.length)
     return callback(null, false);
 
   let combinedWitnessHash;
 
-  if(merklePath[operationCount].witnessIndex % 2 == 0) {
+  if (merklePath[operationCount].witnessIndex % 2 == 0) {
     combinedWitnessHash = merklePath[operationCount].witnessHash + data;
   }
-  if(merklePath[operationCount].witnessIndex % 2 != 0) {
+  if (merklePath[operationCount].witnessIndex % 2 != 0) {
     combinedWitnessHash = data + merklePath[operationCount].witnessHash;
   }
   sha256(combinedWitnessHash, 0, (err, hashOfCombinedWitnessHash) => {
-    if(err)
+    if (err)
       return callback(err);
 
     console.log(hashOfCombinedWitnessHash);
     operationCount++;
 
     recursivelyVerifyMerkleProof(hashOfCombinedWitnessHash, merklePath, operationCount, merkleRoot, (err, result) => {
-      if(err)
+      if (err)
         return callback(err);
 
       return callback(null, result);
     })
   })
-
-}
+};
 
 function verifyMerkleProof(targetData, merklePath, merkleRoot, callback) {
-  if(!Array.isArray(merklePath))
+  if (!Array.isArray(merklePath))
     return callback('array_expected');
 
   console.log('verifyMerkleProof');
   console.log(merklePath);
-  // if(merkleRoot.length != 256)
+  // if (merkleRoot.length != 256)
   //   return callback('unexpected_merkle_root');
 
   sha256(targetData.toString(), 0, (err, hashOfTargetData) => {
-    if(err)
+    if (err)
       return callback(err);
 
     recursivelyVerifyMerkleProof(hashOfTargetData, merklePath, 0, merkleRoot, (err, result) => {
-      if(err)
+      if (err)
         return callback(err);
 
       return callback(null, result);
     })
   });
-}
+};
 
 createMerkleTree(['a', 'b', 'c', 'd'], (err, merkleTree) => {
   if (err)
-    console.log(err);
+    return console.log(err);
 
-  console.log(merkleTree);
+  // console.log(merkleTree);
 
   addLeaf(['e'], merkleTree.leavesArray, (err, newMerkleTree) => {
-    if(err)
-      console.log(err);
+    if (err)
+      return console.log(err);
 
-    console.log(newMerkleTree);
+    // console.log(newMerkleTree);
+
     generateMerkleProof('c', newMerkleTree, (err, merkleProof) => {
-      if(err)
+      if (err)
         console.log(err);
 
-      console.log(merkleProof);
+      // console.log(merkleProof);
 
       verifyMerkleProof('c', merkleProof, newMerkleTree.root, (err, result) => {
-        if(err)
-          console.log(err);
+        if (err)
+          return console.log(err);
 
         console.log(result);
       });
