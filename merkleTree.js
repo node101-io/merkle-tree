@@ -162,7 +162,10 @@ function recursiveGenerateUpperTreeWitnesses( data, callback) {
     data.witnessIndex = data.currentIndex - 1;
 
 
-  data.witnessArray.push(data.merkleTree.tree[data.witnessIndex]);
+  data.witnessArray.push({
+    witnessHash: data.merkleTree.tree[data.witnessIndex],
+    witnessIndex: data.witnessIndex
+  });
 
   data.eachLevelNodeCount = Math.floor(data.eachLevelNodeCount / 2);
 
@@ -192,7 +195,10 @@ function generateMerkleProof(targetLeaf, merkleTree, callback) {
   else
     witnessIndex = targetLeafIndex - 1;
 
-  witnessArray.push(merkleTree.tree[witnessIndex]);
+  witnessArray.push({
+    witnessHash: merkleTree.tree[witnessIndex],
+    witnessIndex: witnessIndex
+  });
 
   let firstLevelNodeCount = merkleTree.leavesArray.length
   if(firstLevelNodeCount % 2 != 0)
@@ -216,104 +222,88 @@ function generateMerkleProof(targetLeaf, merkleTree, callback) {
   });
 }
 
-function recursivelyVerifyMerkleProof(merklePathArray, flag, merkleRoot, callback) {
-  console.log('----------------');
+function recursivelyVerifyMerkleProof(data, merklePath, operationCount, merkleRoot, callback) {
+  console.log(merklePath);
 
-  if(merklePathArray.length == 0)
-    return callback('bad_request');
+  if(data == merkleRoot)
+    return callback(null, true);
 
-  if(merklePathArray.length == 1)
-    return callback(null, merklePathArray);
+  if(operationCount == merklePath.length)
+    return callback(null, false);
 
-  let intermediateHashes = [];
-  let combinedFirstTwoHashes;
+  let combinedWitnessHash;
 
-  if(flag === true)
-    combinedFirstTwoHashes = merklePathArray[0] + merklePathArray[1];
-  if(flag === false)
-    combinedFirstTwoHashes = merklePathArray[1] + merklePathArray[0];
-
-  flag = !flag;
-
-  sha256(combinedFirstTwoHashes, 0, (err, hashOfCombinedFirstTwoHashes) => {
+  if(merklePath[operationCount].witnessIndex % 2 == 0) {
+    combinedWitnessHash = merklePath[operationCount].witnessHash + data;
+  }
+  if(merklePath[operationCount].witnessIndex % 2 != 0) {
+    combinedWitnessHash = data + merklePath[operationCount].witnessHash;
+  }
+  sha256(combinedWitnessHash, 0, (err, hashOfCombinedWitnessHash) => {
     if(err)
       return callback(err);
 
-    intermediateHashes.push(hashOfCombinedFirstTwoHashes);
+    console.log(hashOfCombinedWitnessHash);
+    operationCount++;
 
-    async.eachOfSeries(
-      merklePathArray,
-      (value, index, eachCallback) => {
-        if(index != 0 && index != 1){
-          console.log('+');
-          intermediateHashes.push(value);
-        }
-        eachCallback();
-      },
-      (err) => {
-        if(err)
-          return callback(err);
+    recursivelyVerifyMerkleProof(hashOfCombinedWitnessHash, merklePath, operationCount, merkleRoot, (err, result) => {
+      if(err)
+        return callback(err);
 
-        recursivelyVerifyMerkleProof(intermediateHashes, merkleRoot, callback);
-      }
-    );
+      return callback(null, result);
+    })
   })
+
 }
 
 function verifyMerkleProof(targetData, merklePath, merkleRoot, callback) {
   if(!Array.isArray(merklePath))
     return callback('array_expected');
+
+  console.log('verifyMerkleProof');
+  console.log(merklePath);
   // if(merkleRoot.length != 256)
   //   return callback('unexpected_merkle_root');
-
-  let data = [];
 
   sha256(targetData.toString(), 0, (err, hashOfTargetData) => {
     if(err)
       return callback(err);
 
-    data.push(hashOfTargetData);
-    data = data.concat(merklePath);
-
-    recursivelyVerifyMerkleProof(data, merkleRoot, (err, resultHash) => {
+    recursivelyVerifyMerkleProof(hashOfTargetData, merklePath, 0, merkleRoot, (err, result) => {
       if(err)
         return callback(err);
 
-      if(resultHash == merkleRoot)
-        return callback(null, true);
-
-      return callback(null, false);
+      return callback(null, result);
     })
-
   });
 }
 
-// createMerkleTree(['a', 'b', 'c', 'd'], (err, merkleTree) => {
-//   if (err)
-//     console.log(err);
+createMerkleTree(['a', 'b', 'c', 'd'], (err, merkleTree) => {
+  if (err)
+    console.log(err);
 
-//   console.log(merkleTree);
+  console.log(merkleTree);
 
-//   addLeaf(['e'], merkleTree.leavesArray, (err, newMerkleTree) => {
-//     if(err)
-//       console.log(err);
+  addLeaf(['e'], merkleTree.leavesArray, (err, newMerkleTree) => {
+    if(err)
+      console.log(err);
 
-//     console.log(newMerkleTree);
-//     generateMerkleProof('a', newMerkleTree, (err, merkleProof) => {
-//       if(err)
-//         console.log(err);
+    console.log(newMerkleTree);
+    generateMerkleProof('c', newMerkleTree, (err, merkleProof) => {
+      if(err)
+        console.log(err);
 
-//       console.log(merkleProof);
+      console.log(merkleProof);
 
-//       verifyMerkleProof('a', merkleProof, newMerkleTree.root, (err, isPartOfTheMerkleTree) => {
-//         if(err)
-//           console.log(err);
+      verifyMerkleProof('c', merkleProof, newMerkleTree.root, (err, result) => {
+        if(err)
+          console.log(err);
 
-//         console.log(isPartOfTheMerkleTree);
-//       })
-//     })
-//   })
-// });
+        console.log(result);
+      });
+    });
+  });
+});
 
 module.exports = {
   createMerkleTree,
