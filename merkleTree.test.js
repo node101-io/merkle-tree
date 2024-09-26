@@ -79,6 +79,9 @@ describe.each([
     }
   }
 ])('create merkle tree for $leavesArray', ({leavesArray, expectedMerkleTree}) => {
+  // beforeAll( () => {
+  //   return merkleTree.createMerkleTree();
+  // })
     test(`returns the correct Merkle tree`, () => {
       merkleTree.createMerkleTree(leavesArray, (err, merkleTree) => {
         expect(err).toEqual(null);
