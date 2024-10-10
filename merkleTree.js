@@ -1,6 +1,8 @@
 const async = require('async');
 const crypto = require('crypto');
 
+const MAX_LEAF_SIZE = 4 * 1024; // TODO: search MAX_LEAF_SIZE should be
+
 function isElementsDuplicated(leavesArray, callback) {
   if(!Array.isArray(leavesArray))
     return callback('array_expected');
@@ -29,6 +31,8 @@ function repeatLastLeafIfNotEven(leavesArray, callback) {
 };
 
 function sha256(string, callback) { //TODO: max lenght
+  if(string.length > MAX_LEAF_SIZE)
+    return callback('bad_request'); //TODO: ask the naming
   if(!typeof string === 'string')
     return callback('string_expected');
 
@@ -105,6 +109,9 @@ function generateMerkleTree(leavesArray, callback) {
     async.eachOf(
       leavesArray,
       (leaf, index, eachCallback) => {
+        if(!leaf || leaf.length > MAX_LEAF_SIZE)
+          return eachCallback(err);
+
         sha256(leaf.toString(), (err, hash) => {
           if (err)
             return eachCallback(err);
@@ -209,26 +216,30 @@ function _generateUpperTreeWitnessesRecursively( data, callback) {
     callback('stack_exceeded', null);
     return;
   }
+  let witnessIndex;
+  console.log('cummulativeNodeCount: ' + data.cummulativeNodeCount);
+  console.log('currentIndex: ' + data.currentIndex);
+  console.log('nextLevelNodeCount: ' + data.nextLevelNodeCount);
+  console.log('nextLevelNodePosition: ' + data.nextLevelNodePosition);
 
-  data.currentIndex = data.cummulativeNodeCount + Math.floor(((data.currentIndex ) % (data.eachLevelNodeCount - 1) / 2));
-
-  if (data.currentIndex % 2 === 0)
-    data.witnessIndex = data.currentIndex + 1;
+  if(data.currentIndex % 2 == 0)
+    witnessIndex = data.currentIndex + 1;
   else
-    data.witnessIndex = data.currentIndex - 1;
-
+    witnessIndex = data.currentIndex - 1;
 
   data.witnessArray.push({
-    witnessHash: data.merkleTree.tree[data.witnessIndex],
-    witnessIndex: data.witnessIndex % 2
+    witnessHash: data.merkleTree.tree[witnessIndex],
+    witnessIndex: witnessIndex % 2
   });
+  console.log('Math.ceil(data.nextLevelNodePosition / 2): ')
+  data.nextLevelNodePosition = Math.ceil(data.nextLevelNodePosition / 2);
+  data.cummulativeNodeCount += data.nextLevelNodeCount;
+  data.currentIndex = (data.cummulativeNodeCount - 1) + data.nextLevelNodePosition;
+  data.nextLevelNodeCount = data.nextLevelNodeCount / 2;
 
-  data.eachLevelNodeCount = Math.floor(data.eachLevelNodeCount / 2);
+  if(data.nextLevelNodeCount % 2 != 0)
+    data.nextLevelNodeCount++;
 
-  if (data.eachLevelNodeCount % 2 != 0)
-    data.eachLevelNodeCount++;
-
-  data.cummulativeNodeCount += data.eachLevelNodeCount;
 
   _generateUpperTreeWitnessesRecursively(data, (err, upperTreeWitnessArray) => {
     if (err)
@@ -246,25 +257,25 @@ function generateMerkleProof(targetLeaf, merkleTree, callback) {
   let witnessIndex;
   let targetLeafIndex = merkleTree.leavesArray.findIndex(leafIndex => leafIndex === targetLeaf);
 
-  if (targetLeafIndex % 2 == 0)
-    witnessIndex = targetLeafIndex + 1;
-  else
-    witnessIndex = targetLeafIndex - 1;
+  // if (targetLeafIndex % 2 == 0)
+  //   witnessIndex = targetLeafIndex + 1;
+  // else
+  //   witnessIndex = targetLeafIndex - 1;
 
-  witnessArray.push({
-    witnessHash: merkleTree.tree[witnessIndex],
-    witnessIndex: witnessIndex % 2
-  });
+  // witnessArray.push({
+  //   witnessHash: merkleTree.tree[witnessIndex],
+  //   witnessIndex: witnessIndex % 2
+  // });
 
   let firstLevelNodeCount = merkleTree.leavesArray.length
   if (firstLevelNodeCount % 2 != 0)
     firstLevelNodeCount++;
 
   const witnessGenerationParameters = {
+    cummulativeNodeCount: 0,
     currentIndex: targetLeafIndex,
-    witnessIndex: witnessIndex,
-    eachLevelNodeCount: firstLevelNodeCount,
-    cummulativeNodeCount: firstLevelNodeCount,
+    nextLevelNodeCount: firstLevelNodeCount,
+    nextLevelNodePosition: targetLeafIndex + 1,
     witnessArray: witnessArray,
     merkleTree: merkleTree
   }
@@ -327,35 +338,36 @@ function verifyMerkleProof(targetData, merklePath, merkleRoot, callback) {
   });
 };
 
-generateMerkleTree(['a', 'b', 'c', 'd', 'e'], (err, merkleTree) => {
+generateMerkleTree(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', '1', '2', '3', '4', '5'], (err, merkleTree) => {
   if (err)
     return console.log(err);
   console.log(merkleTree);
 
-  addLeaf(['k'], merkleTree, (err, newMerkleTree) => {
+  // addLeaf([''], merkleTree, (err, newMerkleTree) => {
+  //   if (err)
+  //     return console.log(err);
+  //   console.log(newMerkleTree)
+
+  //   removeLeaf('', newMerkleTree, (err, prunedMerkleTree) => {
+  //     if(err)
+  //       return console.log(err);
+
+  //     console.log(prunedMerkleTree);
+  //   })
+  generateMerkleProof('5', merkleTree, (err, merkleProof) => {
     if (err)
       return console.log(err);
-    console.log(newMerkleTree)
 
-    removeLeaf('', newMerkleTree, (err, prunedMerkleTree) => {
-      if(err)
-        return console.log(err);
-
-      console.log(prunedMerkleTree);
-    })
-    generateMerkleProof('a', newMerkleTree, (err, merkleProof) => {
+    console.log(merkleProof);
+    verifyMerkleProof('5', merkleProof, merkleTree.root, (err, result) => {
       if (err)
         return console.log(err);
 
-      verifyMerkleProof('a', merkleProof, newMerkleTree.root, (err, result) => {
-        if (err)
-          return console.log(err);
-
         console.log(result);
-      });
     });
   });
 });
+// });
 
 module.exports = {
   generateMerkleTree,
