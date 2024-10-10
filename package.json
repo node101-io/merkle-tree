@@ -9,13 +9,14 @@
   "keywords": [],
   "author": "node101",
   "license": "ISC",
+  "repository": "github:node101-io/merkle-tree",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "async": "^3.2.6"
   },
   "devDependencies": {
     "jest": "^29.7.0"
-  },
-  "publishConfig": {
-    "access": "public"
   }
 }
