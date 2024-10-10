@@ -162,7 +162,7 @@ function addLeaf(newLeafToAdd, merkleTree, callback) {
     if(newLeafToAdd == merkleTree.leavesArray[merkleTree.leavesArray.length - 1])
       return callback('doubled_last_element');
   }
-
+  console.log([...merkleTree.leavesArray, ...newLeafToAdd]);
   const combinedLeavesArray = [...merkleTree.leavesArray, ...newLeafToAdd];
   //add isElementsDuplicated
   isElementsDuplicated(combinedLeavesArray, (err, isDuplicated) => {
@@ -257,16 +257,6 @@ function generateMerkleProof(targetLeaf, merkleTree, callback) {
   let witnessIndex;
   let targetLeafIndex = merkleTree.leavesArray.findIndex(leafIndex => leafIndex === targetLeaf);
 
-  // if (targetLeafIndex % 2 == 0)
-  //   witnessIndex = targetLeafIndex + 1;
-  // else
-  //   witnessIndex = targetLeafIndex - 1;
-
-  // witnessArray.push({
-  //   witnessHash: merkleTree.tree[witnessIndex],
-  //   witnessIndex: witnessIndex % 2
-  // });
-
   let firstLevelNodeCount = merkleTree.leavesArray.length
   if (firstLevelNodeCount % 2 != 0)
     firstLevelNodeCount++;
@@ -337,37 +327,6 @@ function verifyMerkleProof(targetData, merklePath, merkleRoot, callback) {
     })
   });
 };
-
-generateMerkleTree(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', '1', '2', '3', '4', '5'], (err, merkleTree) => {
-  if (err)
-    return console.log(err);
-  console.log(merkleTree);
-
-  // addLeaf([''], merkleTree, (err, newMerkleTree) => {
-  //   if (err)
-  //     return console.log(err);
-  //   console.log(newMerkleTree)
-
-  //   removeLeaf('', newMerkleTree, (err, prunedMerkleTree) => {
-  //     if(err)
-  //       return console.log(err);
-
-  //     console.log(prunedMerkleTree);
-  //   })
-  generateMerkleProof('5', merkleTree, (err, merkleProof) => {
-    if (err)
-      return console.log(err);
-
-    console.log(merkleProof);
-    verifyMerkleProof('5', merkleProof, merkleTree.root, (err, result) => {
-      if (err)
-        return console.log(err);
-
-        console.log(result);
-    });
-  });
-});
-// });
 
 module.exports = {
   generateMerkleTree,

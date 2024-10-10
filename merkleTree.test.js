@@ -83,7 +83,7 @@ describe.each([
   //   return merkleTree.createMerkleTree();
   // })
     test(`returns the correct Merkle tree`, () => {
-      merkleTree.createMerkleTree(leavesArray, (err, merkleTree) => {
+      merkleTree.generateMerkleTree(leavesArray, (err, merkleTree) => {
         expect(err).toEqual(null);
         expect(merkleTree).toEqual(expectedMerkleTree);
       });
