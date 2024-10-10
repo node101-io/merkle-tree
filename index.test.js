@@ -1,4 +1,4 @@
-const merkleTree = require('./merkleTree');
+const merkleTree = require('./index');
 
 describe.each([
   {

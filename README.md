@@ -7,7 +7,7 @@ A JavaScript library to generate a Merkle Tree using SHA-256. The library is des
 ```javascript
 const leaves = ['leaf_1', 'leaf_2', 'leaf_3'];
 
-const merkleTree = generateMerkleTree(leaves, (err, merkleTree) => {
+generateMerkleTree(leaves, (err, merkleTree) => {
   if (err)
     return console.log(err);
 

@@ -1,15 +1,18 @@
 {
-  "name": "merkle-tree",
-  "version": "1.0.0",
+  "name": "@node101/merkle-tree",
+  "version": "0.0.3",
   "description": "",
-  "main": "merkleTree.js",
+  "main": "index.js",
   "scripts": {
-    "test": "jest --coverage"
+    "test": "jest"
   },
   "keywords": [],
-  "author": "",
+  "author": "node101",
   "license": "ISC",
   "devDependencies": {
     "jest": "^29.7.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
