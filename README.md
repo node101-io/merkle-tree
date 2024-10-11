@@ -1,6 +1,6 @@
 # merkle-tree
 
-A JavaScript library to generate a Merkle Tree using SHA-256. The library is designed for applications that require data integrity verification through cryptographic hashing with the complexity of O(log n). It supports building a Merkle tree from an array of leaves, generating a Merkle root and Proof, verifying a proof, adding and deleting leaves.
+A JavaScript library to generate a Merkle Tree using SHA-256. The library is designed for applications that require data integrity verification through cryptographic hashing with the complexity of O(log n). It supports building a Merkle tree from an array of leaves, generating a Merkle root and proof, verifying a proof, adding and deleting leaves.
 
 
 ## Building a Tree
@@ -14,7 +14,7 @@ generateMerkleTree(leaves, (err, merkleTree) => {
   console.log(merkleTree);
 });
 ```
-Provide an array of leaves and generate a merkle tree. Merkle tree object has 3 field.
+Provide an array of unique leaves and generate a merkle tree. Merkle tree object has 3 field.
 - tree: a merkle tree which is complete binary tree
 - root: root of the merkle tree which also can be reach through the last element of the merkleTree.tree
 - leavesArray: an array of the leaves
@@ -32,6 +32,15 @@ tree: [
   root: 'f0992f51777c5b571c57c12db014dcba83dd3b93ca71a4d437067b3367d385e9',
   leavesArray: [ 'leaf_1', 'leaf_2', 'leaf_3' ]
 ```
+
+The `generateMerkleTree` function first checks whether the provided leaves array contains unique elements. Although, in theory, a Merkle tree can consist of non-unique elements, we avoid them to ensure data integrity and mitigate denial-of-service attacks, such as CVE-2012-2459.
+
+After confirming the uniqueness of the leaves, `generateMerkleTree` verifies the length of the array to ensure that it has an even number of elements, which is required for building a balanced binary tree. For this there is two option we will discuss.
+
+### Option 1
+![example 1](./img/aproach%201.png)
+
+
 
 ## Adding and Deleting leaves
 For adding a leaf or leaves to the merkle tree we need to use addLeaf method. addLeaf method takes an array of leaves or an individual leaf and it creates the new merkle tree with the new leavesArray. For the protection
