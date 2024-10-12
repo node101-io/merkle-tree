@@ -38,7 +38,16 @@ The `generateMerkleTree` function first checks whether the provided leaves array
 After confirming the uniqueness of the leaves, `generateMerkleTree` verifies the length of the array to ensure that it has an even number of elements, which is required for building a balanced binary tree. For this there is two option we will discuss.
 
 ### Option 1
-![example 1](./img/aproach%201.png)
+Our aproach to generate Merkle tree is checking each layer recursively and ensure the each layer has even node.
+![example 1](./img/example%201.png)
+
+The other option is to round the number of nodes to the nearest multiple of 2. By doing this, we ensure that the number of nodes in each layer is even.
+![example 2](./img/example%202.png)
+
+The reason why we chose the first aproach is for the worst case we only need $ \log n $ extra nodes. But in the second aproach for the worst case we need $2^{n - 1} - 1$ extra nodes.
+
+![aproach 1](./img/aproach%201.png)
+![aproach 2](./img/aproach%202.png)
 
 
 
