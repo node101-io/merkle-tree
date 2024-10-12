@@ -128,7 +128,6 @@ generateMerkleTree(leaves, (err, merkleTree) => {
 
     console.log(merkleProof);
   })
-
 });
 ```
 
@@ -165,22 +164,16 @@ The reason why we chose the first aproach is for the worst case we only need $\l
 
 ![aproach 2](./img/aproach%202.png)
 
-## Weaknesses of Hash Functions
- ### Lenght Extension Attack
-## Possible Attack Resistance
-
 ## Why there is no duplication on Merkle Set
 
+## Weaknesses of Hash Functions
+### Lenght Extension Attack
+### Denial-of-service attack (CVE-2012-2459)
+
+
+
 ## Related readings
-### Why you should probably never sort your Merkle tree's leaves
-https://alinush.github.io/2023/02/05/Why-you-should-probably-never-sort-your-Merkle-trees-leaves.html
-
-
-# (CVE-2012-2459) denial-of-service attack
-
-https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2012-August/001806.html
-
-# Length extension attack
+[Why you should probably never sort your Merkle tree's leaves](https://alinush.github.io/2023/02/05/Why-you-should-probably-never-sort-your-Merkle-trees-leaves.html)
 
 ## License
 [MIT](https://choosealicense.com/licenses/mit/)
