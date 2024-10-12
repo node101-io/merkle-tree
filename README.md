@@ -1,9 +1,17 @@
 # merkle-tree
 
-A JavaScript library to generate a Merkle Tree using SHA-256. The library is designed for applications that require data integrity verification through cryptographic hashing with the complexity of O(log n). It supports building a Merkle tree from an array of leaves, generating a Merkle root and proof, verifying a proof, adding and deleting leaves.
+A JavaScript library to generate a Merkle Tree using SHA-256. The library is designed for applications that require data integrity verification through cryptographic hashing. It supports a range of key functionalities, including:
+
+- Building a Merkle tree from an array of leaves
+- Generating the Merkle root and cryptographic proofs for leaf inclusion
+- Verifying proofs to ensure data integrity
+- Adding and removing leaves dynamically
+
+The complexity for operations like proof generation and verification is optimized to $O(\log n)$, making this library well-suited for use in blockchain, distributed systems, or any application where cryptographic data validation is critical.
 
 
 ## Building a Tree
+
 ```javascript
 const leaves = ['leaf_1', 'leaf_2', 'leaf_3'];
 
@@ -33,30 +41,130 @@ tree: [
   leavesArray: [ 'leaf_1', 'leaf_2', 'leaf_3' ]
 ```
 
-The `generateMerkleTree` function first checks whether the provided leaves array contains unique elements. Although, in theory, a Merkle tree can consist of non-unique elements, we avoid them to ensure data integrity and mitigate denial-of-service attacks, such as CVE-2012-2459.
+The `generateMerkleTree` function first checks whether the provided leaves array contains unique elements. Although, in theory, a Merkle tree can consist of non-unique elements, we avoid them to ensure data integrity and mitigate denial-of-service attacks, such as [CVE-2012-2459](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2012-August/001806.html).
+
 
 After confirming the uniqueness of the leaves, `generateMerkleTree` verifies the length of the array to ensure that it has an even number of elements, which is required for building a balanced binary tree. For this there is two option we will discuss.
 
-### Option 1
+
+## Adding leaves
+
+For adding a leaf or leaves to the merkle tree we need to use `addLeaf` method. `addLeaf` method takes an array of leaves or a leaf string and it creates the new merkle tree with the new `leavesArray`. For ensuring non-duplicated `leavesArray` also we check uniqueness of the updated `leavesArray`
+
+For only one leaf adition:
+
+```javascript
+const leaves = ['leaf_1', 'leaf_2', 'leaf_3'];
+
+generateMerkleTree(leaves, (err, merkleTree) => {
+  if (err)
+    return console.log(err);
+
+  addLeaf('induvidual_leaf', merkleTree, (err, updatedMerkleTree) => {
+    if (err)
+      return console.log(err)
+
+    console.log(updatedMerkleTree);
+  })
+})
+```
+
+For multiple leaf adition:
+
+```javascript
+const leaves = ['leaf_1', 'leaf_2', 'leaf_3'];
+
+generateMerkleTree(leaves, (err, merkleTree) => {
+  if (err)
+    return console.log(err);
+
+  addLeaf(['leaf_4', 'leaf_5', 'leaf_6'], merkleTree, (err, updatedMerkleTree) => {
+    if (err)
+      return console.log(err)
+
+    console.log(updatedMerkleTree);
+  })
+})
+```
+## Deleting leaves
+
+## Getting Merkle Root
+
+After creating `merkleTree` object we can directly reach root my `merkleTree.root`. Also we have a method to reach the Merkle Root `getMerkleRoot`
+
+```javascript
+const leaves = ['leaf_1', 'leaf_2', 'leaf_3'];
+
+generateMerkleTree(leaves, (err, merkleTree) => {
+  if (err)
+    return console.log(err);
+
+  console.log(merkleTree.root);
+  //or
+  getMerkleRoot(merkleTree , (err, merkleRoot) => {
+    if (err)
+      return console.log(err);
+
+    console.log(merkleRoot);
+  })
+});
+```
+
+
+## Obtaining a Merkle Proof Path
+
+A Merkle proof is a cryptographic proof used to verify that a particular piece of data (a "leaf") is part of a larger dataset (represented by a Merkle tree) without having to reveal the entire dataset. It’s a key feature in ensuring data integrity and efficiency in verification processes. (change here)
+
+```javascript
+const leaves = ['leaf_1', 'leaf_2', 'leaf_3'];
+
+generateMerkleTree(leaves, (err, merkleTree) => {
+  if (err)
+    return console.log(err);
+
+  generateMerkleProof('leaf_1', merkleTree, (err, merkleProof) => {
+    if (err)
+      return console.log(err);
+
+    console.log(merkleProof);
+  })
+
+});
+```
+
+## Validating a Merkle Proof
+
+Validating a Merkle proof is essential for ensuring the integrity and authenticity of data in systems where it's important to verify that a particular piece of data is part of a larger dataset (represented by a Merkle tree) without having to download or trust the entire dataset.
+
+For our package a validation process look like:
+
+```javascript
+verifyMerkleProof('target_data', merklePath, (err, isPartOfTheTree) => {
+  if (err)
+    return console.log(err);
+
+  console.log(isPartOfTheTree);
+});
+```
+
+
+## Discussion
+### Different Aproach for Creating Merkle Tree
+
 Our aproach to generate Merkle tree is checking each layer recursively and ensure the each layer has even node.
+
 ![example 1](./img/example%201.png)
 
 The other option is to round the number of nodes to the nearest multiple of 2. By doing this, we ensure that the number of nodes in each layer is even.
+
 ![example 2](./img/example%202.png)
 
-The reason why we chose the first aproach is for the worst case we only need $ \log n $ extra nodes. But in the second aproach for the worst case we need $2^{n - 1} - 1$ extra nodes.
+The reason why we chose the first aproach is for the worst case we only need $\log n$ extra nodes. But in the second aproach for the worst case we need $2^{n - 1} - 1$ extra nodes.
 
 ![aproach 1](./img/aproach%201.png)
+
 ![aproach 2](./img/aproach%202.png)
 
-
-
-## Adding and Deleting leaves
-For adding a leaf or leaves to the merkle tree we need to use addLeaf method. addLeaf method takes an array of leaves or an individual leaf and it creates the new merkle tree with the new leavesArray. For the protection
-
-## Getting Merkle Root
-## Obtaining a Merkle Proof
-## Validating a Merkle Proof
 ## Weaknesses of Hash Functions
  ### Lenght Extension Attack
 ## Possible Attack Resistance
