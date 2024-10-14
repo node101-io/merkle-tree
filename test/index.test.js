@@ -1,5 +1,5 @@
 import { test, describe, expect } from 'vitest';
-import { generateMerkleTree } from './index.js';
+import { generateMerkleTree } from '../build/index.js';
 
 describe.each([
   {
@@ -79,7 +79,7 @@ describe.each([
       leavesArray: ['test1', 'test2', 'test3', 'test4', 'test5']
     }
   }
-])('create merkle tree for $leavesArray', ({leavesArray, expectedMerkleTree}) => {
+])('create merkle tree for $leavesArray', ({ leavesArray, expectedMerkleTree }) => {
   // beforeAll( () => {
   //   return merkleTree.createMerkleTree();
   // })

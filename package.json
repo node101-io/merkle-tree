@@ -2,9 +2,10 @@
   "name": "@node101/merkle-tree",
   "version": "0.0.7",
   "description": "",
-  "main": "index.js",
+  "main": "build/index.js",
   "scripts": {
-    "test": "vitest"
+    "test": "vitest",
+    "build": "tsc"
   },
   "keywords": [],
   "author": "node101",
@@ -13,10 +14,9 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
-    "async": "^3.2.6"
-  },
+  "dependencies": {},
   "devDependencies": {
+    "typescript": "^5.6.3",
     "vitest": "^2.1.2"
   }
 }
