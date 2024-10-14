@@ -1,4 +1,5 @@
-const merkleTree = require('./index');
+import { test, describe, expect } from 'vitest';
+import { generateMerkleTree } from './index.js';
 
 describe.each([
   {
@@ -82,10 +83,10 @@ describe.each([
   // beforeAll( () => {
   //   return merkleTree.createMerkleTree();
   // })
-    test(`returns the correct Merkle tree`, () => {
-      merkleTree.generateMerkleTree(leavesArray, (err, merkleTree) => {
-        expect(err).toEqual(null);
-        expect(merkleTree).toEqual(expectedMerkleTree);
-      });
+  test(`returns the correct Merkle tree`, () => {
+    generateMerkleTree(leavesArray, (err, merkleTree) => {
+      expect(err).toEqual(null);
+      expect(merkleTree).toEqual(expectedMerkleTree);
     });
+  });
 });

@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "test": "vitest"
   },
   "keywords": [],
   "author": "node101",
@@ -17,6 +17,6 @@
     "async": "^3.2.6"
   },
   "devDependencies": {
-    "jest": "^29.7.0"
+    "vitest": "^2.1.2"
   }
 }
