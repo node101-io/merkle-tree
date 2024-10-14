@@ -9,7 +9,7 @@ export interface Witness {
   witnessIndex: number;
 }
 
-export interface GenerateUpperTreeWitnessData {
+export interface MerkleWitnessTraversalState {
   cummulativeNodeCount: number;
   currentIndex: number;
   nextLevelNodeCount: number;
@@ -23,5 +23,5 @@ export interface CallbackMerkleTree {
 }
 
 export interface CallbackMerkleProof {
-  (err: string | null, merkleProof?: string[]): void
+  (err: string | null, merkleProof?: Witness[]): void
 }

@@ -4,26 +4,70 @@ import { sha256 } from './utils/sha256.js';
 import {
   MerkleTree,
   Witness,
-  GenerateUpperTreeWitnessData,
+  MerkleWitnessTraversalState,
   CallbackMerkleTree,
   CallbackMerkleProof
 } from './types.js';
 
 const MAX_LEAF_SIZE = 4 * 1024; // TODO: search MAX_LEAF_SIZE should be
 
-const generateChildArrayRecursively = (evenHashArray: string[], childArray: string[], index: number): string[] => {
-  if (index >= evenHashArray.length)
-    return childArray;
+function _verifyMerkleProofRecursively(merkleRoot: string, merklePath: Witness[], targetDataHash: string, operationCount: number): boolean {
+  if (targetDataHash === merkleRoot)
+    return true;
 
-  if (index % 2 !== 0)
-    return generateChildArrayRecursively(evenHashArray, childArray, index + 1);
+  if (operationCount === merklePath.length)
+    return false;
 
-  const combinedHash = evenHashArray[index] + evenHashArray[index + 1];
-  const hashOfCombined = sha256(combinedHash);
+  let combinedWitnessHash: string;
 
-  return generateChildArrayRecursively(evenHashArray, [...childArray, hashOfCombined], index + 2);
+  if (merklePath[operationCount].witnessIndex === 0)
+    combinedWitnessHash = merklePath[operationCount].witnessHash + targetDataHash;
+  else
+    combinedWitnessHash = targetDataHash + merklePath[operationCount].witnessHash;
+
+  const hashOfCombinedWitnessHash = sha256(combinedWitnessHash);
+
+  return _verifyMerkleProofRecursively(merkleRoot, merklePath, hashOfCombinedWitnessHash, operationCount + 1);
 };
-const generateMerkleTreeRecursively = (originalLeavesArray: string[], hashArray: string[]): MerkleTree => {
+function _generateMerkleProof(merkleTree: MerkleTree, targetLeaf: string): Promise<Witness[]> {
+  return new Promise((resolve, reject) => {
+    const targetLeafIndex = merkleTree.leavesArray.findIndex(leafIndex => leafIndex === targetLeaf);
+
+    if (targetLeafIndex === -1)
+      return reject('leaf_not_found');
+
+    const firstLevelNodeCount = merkleTree.leavesArray.length % 2 === 0 ? merkleTree.leavesArray.length : merkleTree.leavesArray.length + 1;
+
+    const merkleWitnessTraversalState: MerkleWitnessTraversalState = {
+      cummulativeNodeCount: 0,
+      currentIndex: targetLeafIndex,
+      nextLevelNodeCount: firstLevelNodeCount,
+      nextLevelNodePosition: targetLeafIndex + 1,
+      witnessArray: [],
+      merkleTree: merkleTree
+    };
+
+    return _generateUpperTreeWitnessesRecursively(merkleWitnessTraversalState);
+  });
+}
+function _generateMerkleTree(leavesArray: string[]): Promise<MerkleTree> {
+  return new Promise((resolve, reject) => {
+    if (isElementsDuplicated(leavesArray))
+      return reject('duplicated_leaves');
+
+    const hashedLeavesArray: string[] = [];
+
+    for (let i = 0; i < leavesArray.length; i++) {
+      if (leavesArray[i].length > MAX_LEAF_SIZE)
+        return reject('leaf_too_large');
+
+      hashedLeavesArray[i] = sha256(leavesArray[i]);
+    };
+
+    return resolve(_generateMerkleTreeRecursively(leavesArray, hashedLeavesArray));
+  });
+};
+function _generateMerkleTreeRecursively(originalLeavesArray: string[], hashArray: string[]): MerkleTree {
   if (hashArray.length === 1)
     return {
       tree: hashArray,
@@ -32,10 +76,8 @@ const generateMerkleTreeRecursively = (originalLeavesArray: string[], hashArray:
     };
 
   const evenHashArray = repeatLastElementOfArrayIfNotEven(hashArray);
-
-  const childArray = generateChildArrayRecursively(evenHashArray, [], 0);
-
-  const upperTree = generateMerkleTreeRecursively(originalLeavesArray, childArray);
+  const childArray = _generateChildArrayRecursively(evenHashArray, [], 0);
+  const upperTree = _generateMerkleTreeRecursively(originalLeavesArray, childArray);
 
   return {
     tree: [...evenHashArray, ...upperTree.tree],
@@ -43,7 +85,46 @@ const generateMerkleTreeRecursively = (originalLeavesArray: string[], hashArray:
     leavesArray: originalLeavesArray
   };
 };
-const generateUpperTreeWitnessesRecursively = (data: GenerateUpperTreeWitnessData): string[] => {
+function _generateChildArrayRecursively(evenHashArray: string[], childArray: string[], index: number): string[] {
+  if (index >= evenHashArray.length)
+    return childArray;
+
+  if (index % 2 !== 0)
+    return _generateChildArrayRecursively(evenHashArray, childArray, index + 1);
+
+  const combinedHash = evenHashArray[index] + evenHashArray[index + 1];
+  const hashOfCombined = sha256(combinedHash);
+
+  return _generateChildArrayRecursively(evenHashArray, [...childArray, hashOfCombined], index + 2);
+};
+function _addLeaf(merkleTree: MerkleTree, leavesToAdd: string | string[]): Promise<MerkleTree> {
+  return new Promise((resolve, reject) => {
+    const newLeavesToAdd = Array.isArray(leavesToAdd) ? leavesToAdd : [leavesToAdd];
+
+    const combinedLeavesArray = [...merkleTree.leavesArray, ...newLeavesToAdd];
+
+    if (isElementsDuplicated(combinedLeavesArray))
+      return reject('duplicated_leaves');
+
+    return resolve(generateMerkleTree(combinedLeavesArray));
+  });
+};
+function _removeLeaf(merkleTree: MerkleTree, leavesToRemove: string | string[]): Promise<MerkleTree> {
+  return new Promise((resolve, reject) => {
+    leavesToRemove = Array.isArray(leavesToRemove) ? leavesToRemove : [leavesToRemove];
+
+    const prunedLeaves = merkleTree.leavesArray.filter((item: string) => !leavesToRemove.includes(item));
+
+    if (prunedLeaves.length === 0)
+      return reject('no_leaf_to_remove');
+
+    if (isElementsDuplicated(prunedLeaves))
+      return reject('duplicated_leaves');
+
+    return generateMerkleTree(prunedLeaves);
+  });
+};
+function _generateUpperTreeWitnessesRecursively (data: MerkleWitnessTraversalState): Witness[] {
   if (data.cummulativeNodeCount >= data.merkleTree.tree.length - 1) // TODO: fix
     return [];
 
@@ -67,86 +148,51 @@ const generateUpperTreeWitnessesRecursively = (data: GenerateUpperTreeWitnessDat
   if (data.nextLevelNodeCount % 2 != 0)
     data.nextLevelNodeCount++;
 
-  return generateUpperTreeWitnessesRecursively(data);
+  return _generateUpperTreeWitnessesRecursively(data);
 };
-const verifyMerkleProofRecursively = (merkleRoot: string, merklePath: Witness[], targetDataHash: string, operationCount: number): boolean => {
-  if (targetDataHash === merkleRoot)
-    return true;
 
-  if (operationCount === merklePath.length)
-    return false;
-
-  let combinedWitnessHash: string;
-
-  if (merklePath[operationCount].witnessIndex === 0)
-    combinedWitnessHash = merklePath[operationCount].witnessHash + targetDataHash;
+export function generateMerkleTree(leavesArray: string[]): Promise<MerkleTree>;
+export function generateMerkleTree(leavesArray: string[], callback: CallbackMerkleTree): void;
+export function generateMerkleTree(leavesArray: string[], callback?: CallbackMerkleTree): Promise<MerkleTree> | void {
+  if (!callback)
+    return _generateMerkleTree(leavesArray);
   else
-    combinedWitnessHash = targetDataHash + merklePath[operationCount].witnessHash;
-
-  const hashOfCombinedWitnessHash = sha256(combinedWitnessHash);
-
-  return verifyMerkleProofRecursively(merkleRoot, merklePath, hashOfCombinedWitnessHash, operationCount + 1);
+    _generateMerkleTree(leavesArray)
+      .then(merkleTree => callback(null, merkleTree))
+      .catch(err => callback(err));
 };
-
-export const generateMerkleTree = (leavesArray: string[], callback: CallbackMerkleTree) => {
-  if (isElementsDuplicated(leavesArray))
-    return callback('duplicated_leaves');
-
-  const hashedLeavesArray: string[] = [];
-
-  for (let i = 0; i < leavesArray.length; i++) {
-    if (leavesArray[i].length > MAX_LEAF_SIZE)
-      return callback('leaf_too_large');
-
-    hashedLeavesArray[i] = sha256(leavesArray[i]);
-  };
-
-  return generateMerkleTreeRecursively(leavesArray, hashedLeavesArray);
+export function addLeaf(merkleTree: MerkleTree, leavesToAdd: string | string[]): Promise<MerkleTree>;
+export function addLeaf(merkleTree: MerkleTree, leavesToAdd: string | string[], callback: CallbackMerkleTree): void;
+export function addLeaf(merkleTree: MerkleTree, leavesToAdd: string | string[], callback?: CallbackMerkleTree): void | Promise<MerkleTree> {
+  if (!callback)
+    return _addLeaf(merkleTree, leavesToAdd);
+  else
+    _addLeaf(merkleTree, leavesToAdd)
+      .then(merkleTree => callback(null, merkleTree))
+      .catch(err => callback(err));
 };
-export const addLeaf = (merkleTree: MerkleTree, leavesToAdd: string | string[], callback: CallbackMerkleTree) => {
-  const newLeavesToAdd = Array.isArray(leavesToAdd) ? leavesToAdd : [leavesToAdd];
-
-  const combinedLeavesArray = [...merkleTree.leavesArray, ...newLeavesToAdd];
-
-  if (isElementsDuplicated(combinedLeavesArray))
-    return callback('duplicated_leaves');
-
-  return generateMerkleTree(combinedLeavesArray, callback);
+export function removeLeaf(merkleTree: MerkleTree, leavesToRemove: string | string[]): Promise<MerkleTree>;
+export function removeLeaf(merkleTree: MerkleTree, leavesToRemove: string | string[], callback: CallbackMerkleTree): void;
+export function removeLeaf(merkleTree: MerkleTree, leavesToRemove: string | string[], callback?: CallbackMerkleTree): void | Promise<MerkleTree> {
+  if (!callback)
+    return _removeLeaf(merkleTree, leavesToRemove);
+  else
+    _removeLeaf(merkleTree, leavesToRemove)
+      .then(merkleTree => callback(null, merkleTree))
+      .catch(err => callback(err));
 };
-export const removeLeaf = (merkleTree: MerkleTree, leavesToRemove: string | string[], callback: CallbackMerkleTree) => {
-  leavesToRemove = Array.isArray(leavesToRemove) ? leavesToRemove : [leavesToRemove];
-
-  const prunedLeaves = merkleTree.leavesArray.filter(item => !leavesToRemove.includes(item));
-
-  if (prunedLeaves.length === 0)
-    return callback('no_leaf_to_remove');
-
-  if (isElementsDuplicated(prunedLeaves))
-    return callback('duplicated_leaves');
-
-  return generateMerkleTree(prunedLeaves, callback);
+export function generateMerkleProof(merkleTree: MerkleTree, targetLeaf: string): Promise<Witness[]>;
+export function generateMerkleProof(merkleTree: MerkleTree, targetLeaf: string, callback: CallbackMerkleProof): void;
+export function generateMerkleProof(merkleTree: MerkleTree, targetLeaf: string, callback?: CallbackMerkleProof): void | Promise<Witness[]> {
+  if (!callback)
+    return _generateMerkleProof(merkleTree, targetLeaf);
+  else
+    _generateMerkleProof(merkleTree, targetLeaf)
+      .then(witnessArray => callback(null, witnessArray))
+      .catch(err => callback(err));
 };
-export const generateMerkleProof = (merkleTree: MerkleTree, targetLeaf: string, callback: CallbackMerkleProof) => {
-  const targetLeafIndex = merkleTree.leavesArray.findIndex(leafIndex => leafIndex === targetLeaf);
-
-  if (targetLeafIndex === -1)
-    return callback('leaf_not_found');
-
-  const firstLevelNodeCount = merkleTree.leavesArray.length % 2 === 0 ? merkleTree.leavesArray.length : merkleTree.leavesArray.length + 1;
-
-  const generateUpperTreeWitnessesData = {
-    cummulativeNodeCount: 0,
-    currentIndex: targetLeafIndex,
-    nextLevelNodeCount: firstLevelNodeCount,
-    nextLevelNodePosition: targetLeafIndex + 1,
-    witnessArray: [],
-    merkleTree: merkleTree
-  };
-
-  return generateUpperTreeWitnessesRecursively(generateUpperTreeWitnessesData);
-};
-export const verifyMerkleProof = (merklePath: Witness[], targetData: string, merkleRoot: string): boolean => {
+export function verifyMerkleProof(merklePath: Witness[], targetData: string, merkleRoot: string): boolean {
   const hashOfTargetData = sha256(targetData);
 
-  return verifyMerkleProofRecursively(merkleRoot, merklePath, hashOfTargetData, 0);
+  return _verifyMerkleProofRecursively(merkleRoot, merklePath, hashOfTargetData, 0);
 };
