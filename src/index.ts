@@ -9,8 +9,6 @@ import {
   CallbackMerkleProof
 } from './types.js';
 
-const MAX_LEAF_SIZE = 4 * 1024; // TODO: search MAX_LEAF_SIZE should be
-
 function _verifyMerkleProofRecursively(merkleRoot: string, merklePath: Witness[], targetDataHash: string, operationCount: number): boolean {
   if (targetDataHash === merkleRoot)
     return true;
@@ -47,7 +45,7 @@ function _generateMerkleProof(merkleTree: MerkleTree, targetLeaf: string): Promi
       merkleTree: merkleTree
     };
 
-    return _generateUpperTreeWitnessesRecursively(merkleWitnessTraversalState);
+    return resolve(_generateUpperTreeWitnessesRecursively(merkleWitnessTraversalState));
   });
 }
 function _generateMerkleTree(leavesArray: string[]): Promise<MerkleTree> {
@@ -57,12 +55,8 @@ function _generateMerkleTree(leavesArray: string[]): Promise<MerkleTree> {
 
     const hashedLeavesArray: string[] = [];
 
-    for (let i = 0; i < leavesArray.length; i++) {
-      if (leavesArray[i].length > MAX_LEAF_SIZE)
-        return reject('leaf_too_large');
-
+    for (let i = 0; i < leavesArray.length; i++)
       hashedLeavesArray[i] = sha256(leavesArray[i]);
-    };
 
     return resolve(_generateMerkleTreeRecursively(leavesArray, hashedLeavesArray));
   });
@@ -125,8 +119,8 @@ function _removeLeaf(merkleTree: MerkleTree, leavesToRemove: string | string[]):
   });
 };
 function _generateUpperTreeWitnessesRecursively (data: MerkleWitnessTraversalState): Witness[] {
-  if (data.cummulativeNodeCount >= data.merkleTree.tree.length - 1) // TODO: fix
-    return [];
+  if (data.cummulativeNodeCount >= data.merkleTree.tree.length - 1)
+    return data.witnessArray;
 
   let witnessIndex: number;
 
