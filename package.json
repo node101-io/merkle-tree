@@ -1,0 +1,28 @@
+{
+  "name": "@node101/merkle-tree",
+  "version": "0.0.11",
+  "description": "",
+  "type": "module",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "files": [
+    "build"
+  ],
+  "scripts": {
+    "test": "vitest",
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [],
+  "author": "node101",
+  "license": "ISC",
+  "repository": "github:node101-io/merkle-tree",
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.1",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.2"
+  }
+}
