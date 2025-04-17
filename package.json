@@ -1,6 +1,6 @@
 {
   "name": "@node101/merkle-tree",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "",
   "main": "build/index.js",
   "types": "build/index.d.ts",
@@ -19,8 +19,8 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {},
   "devDependencies": {
+    "@types/node": "^22.14.1",
     "typescript": "^5.6.3",
     "vitest": "^2.1.2"
   }
