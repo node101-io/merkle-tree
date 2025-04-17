@@ -1,7 +1,8 @@
 {
   "name": "@node101/merkle-tree",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "",
+  "type": "module",
   "main": "build/index.js",
   "types": "build/index.d.ts",
   "files": [
